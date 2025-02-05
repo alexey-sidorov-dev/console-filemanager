@@ -1,0 +1,14 @@
+target/
+build/
+dist/
+out/
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+!**/src/main/**/build/
+!**/src/test/**/build/
