@@ -8,15 +8,15 @@ public class Application {
 
     FileManager fileManager = new FileManager();
     Scanner scanner = new Scanner(System.in);
-    System.out.print(fileManager.getCurrent() + ">");
-    String input = scanner.nextLine();
+    String input;
+    String[] tokens;
 
-    while (!"exit".equals(input)) {
-      String[] tokens = input.split(" ");
-      fileManager.execute(tokens);
-      System.out.println();
+    do {
       System.out.print(fileManager.getCurrent() + ">");
       input = scanner.nextLine();
-    }
+      tokens = input.trim().split("\\s+");
+      fileManager.execute(tokens);
+      System.out.println();
+    } while (!"exit".equals(input));
   }
 }

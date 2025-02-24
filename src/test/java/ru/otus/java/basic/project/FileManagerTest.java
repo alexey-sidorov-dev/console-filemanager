@@ -1,5 +1,6 @@
 package ru.otus.java.basic.project;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class FileManagerTest {
@@ -8,7 +9,7 @@ class FileManagerTest {
 
   @Test
   void testHelp() {
-    fileManager.help();
+    Assertions.assertDoesNotThrow(() -> fileManager.help());
+    Assertions.assertDoesNotThrow(() -> fileManager.execute(new String[]{"help"}));
   }
 }
-
