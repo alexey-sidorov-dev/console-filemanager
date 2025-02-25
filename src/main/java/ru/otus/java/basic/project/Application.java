@@ -14,9 +14,8 @@ public class Application {
     do {
       System.out.print(fileManager.getCurrent() + ">");
       input = scanner.nextLine();
-      tokens = input.trim().split("\\s+");
-      fileManager.execute(tokens);
+      fileManager.process(input);
       System.out.println();
-    } while (!"exit".equals(input));
+    } while (!"exit".equals(input.trim()));
   }
 }

@@ -25,14 +25,11 @@ public class FileManager {
     return current;
   }
 
-  private String getRoot() {
-    return root;
-  }
-
+  // TODO: добавить -f для mv и cp
+  // TODO: добавить find
   // TODO: добавить обработку ошибок
-  // TODO: добавить в команды обработку абсолютного пути
-  public void execute(String[] input) {
-    List<String> tokens = new ArrayList<>(Arrays.asList(input));
+  public void process(String input) {
+    List<String> tokens = new ArrayList<>(Arrays.asList(input.trim().split("\\s+")));
     List<String> args = tokens.subList(1, tokens.size());
     try {
       String command = tokens.get(0);
@@ -58,7 +55,7 @@ public class FileManager {
     }
   }
 
-  void help() {
+  private void help() {
     String help = """
         ls [-i] - вывести на экран списка файлов текущего каталога
         cd [path] - перейти в указанную поддиректорию
@@ -82,13 +79,13 @@ public class FileManager {
     if (files == null) {
       return;
     }
-
     for (File file : files
     ) {
       isDirectory = file.isDirectory();
       fileName = file.getName() + (isDirectory ? File.separator : "");
+
       if (infoFlag) {
-        System.out.printf(" %-15s%s%15s%n", fileName,
+        System.out.printf(" %-25s%s%10s%n", fileName,
             convertTime(file.lastModified()),
             (isDirectory ? FileUtils.byteCountToDisplaySize(
                 FileUtils.sizeOfDirectory(file))
@@ -100,18 +97,18 @@ public class FileManager {
   }
 
   private void changeDirectory(List<String> args) {
-    String destinationName = args.get(0);
-    if ("..".equals(destinationName)) {
+    String path = args.get(0);
+    if ("..".equals(path)) {
       int index = this.current.lastIndexOf(File.separator);
       this.current = this.current.substring(0, index);
     } else {
-      this.current += File.separator + destinationName;
+      this.current = (isAbsolutePath(path)) ? path : this.current + File.separator + path;
     }
   }
 
   public void makeDirectory(List<String> args) throws Exception {
-    String targetName = args.get(0);
-    File file = new File(this.current + File.separator + targetName);
+    String path = args.get(0);
+    File file = new File((isAbsolutePath(path)) ? path : this.current + File.separator + path);
     if (!file.mkdir()) {
       throw new Exception();
     }
@@ -119,34 +116,38 @@ public class FileManager {
 
   public void remove(List<String> args) throws Exception {
     String path = args.get(0);
-    File file = new File(path);
+    File file = new File((isAbsolutePath(path)) ? path : this.current + File.separator + path);
     if (!file.delete()) {
       throw new Exception();
     }
   }
 
   public void move(List<String> args) throws IOException {
-    String source = args.get(0);
-    String destination = args.get(1);
-    File sourceFile = new File(this.current + "\\" + source);
-    File destinationFile = new File(this.current + "\\" + destination);
+    String sourcePath = args.get(0);
+    String destinationPath = args.get(1);
+    File sourceFile = new File(
+        (isAbsolutePath(sourcePath)) ? sourcePath : this.current + "\\" + sourcePath);
+    File destinationFile = new File((isAbsolutePath(destinationPath)) ? destinationPath
+        : this.current + "\\" + destinationPath);
     FileUtils.moveToDirectory(sourceFile, destinationFile, destinationFile.exists());
 
   }
 
   public void copy(List<String> args) throws IOException {
-    String sourceFile = args.get(0);
-    String destinationFile = args.get(1);
-    File source = new File(current + File.separator + sourceFile);
-    File destination = new File(current + File.separator + destinationFile);
-    FileUtils.copyFile(source, destination);
+    String sourcePath = args.get(0);
+    String destinationPath = args.get(1);
+    File sourceFile = new File(
+        (isAbsolutePath(sourcePath)) ? sourcePath : current + File.separator + sourcePath);
+    File destinationFile = new File((isAbsolutePath(destinationPath)) ? destinationPath
+        : current + File.separator + destinationPath);
+    FileUtils.copyFile(sourceFile, destinationFile);
   }
 
   public void info(List<String> args) {
-    String fileName = args.get(0);
-    File file = new File(this.current + "\\" + fileName);
+    String path = args.get(0);
+    File file = new File((isAbsolutePath(path)) ? path : this.current + "\\" + path);
     boolean isDirectory = file.isDirectory();
-    System.out.printf(" %-15s%s%15s%n",
+    System.out.printf(" %-25s%s%10s%n",
         file.getName() + (isDirectory ? File.separator : ""),
         convertTime(file.lastModified()),
         (isDirectory ? FileUtils.byteCountToDisplaySize(
@@ -163,10 +164,14 @@ public class FileManager {
     System.out.println("Завершение работы...");
   }
 
-  public String convertTime(long time) {
+  private String convertTime(long time) {
     Date date = new Date(time);
     Format format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     return format.format(date);
+  }
+
+  private boolean isAbsolutePath(String path) {
+    return path.contains(this.root);
   }
 }
 
