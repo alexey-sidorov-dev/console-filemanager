@@ -1,5 +1,7 @@
 package ru.otus.java.basic.project;
 
+import static ru.otus.java.basic.project.Commands.EXIT;
+
 import java.util.Scanner;
 
 public class Application {
@@ -15,7 +17,7 @@ public class Application {
         input = scanner.nextLine();
         fileManager.process(input);
         System.out.println();
-      } while (!"exit".equals(input.trim()));
+      } while (!EXIT.getCommand().equals(input.trim()));
     } catch (Exception e) {
       System.out.println("Во время работы программы произошла ошибка: " + e.getMessage());
     }

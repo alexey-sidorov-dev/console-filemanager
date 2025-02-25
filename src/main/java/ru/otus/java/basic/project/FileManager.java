@@ -11,26 +11,26 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import org.apache.commons.io.FileUtils;
 
 public class FileManager {
 
   private String current;
   private final String root;
+  private final Map<String, String> commands;
 
   public FileManager() {
     Path path = Paths.get(".");
     current = String.valueOf(path.toAbsolutePath().normalize());
     root = String.valueOf(path.toAbsolutePath().normalize().getRoot());
+    commands = Commands.getCommands();
   }
 
   public String getCurrent() {
     return current;
   }
 
-  // TODO: добавить обработку ошибок
-  // TODO: заменить ошибки на информационные сообщения, где штатная работа приложения
-  // TODO: проверить все аргументы, где они требуются
   // TODO: добавить -f для mv и cp
   public void process(String input) {
     try {
@@ -50,40 +50,26 @@ public class FileManager {
         case "find" -> find(args);
         case "exit" -> exit();
         default -> {
-          System.out.println(
+          System.out.printf(" %s%n",
               "Команда не найдена, введите help для получения списка доступных команд");
         }
       }
     } catch (Exception e) {
-      System.out.println(e.getMessage());
+      System.out.printf(" %s%n", e.getMessage());
     }
   }
 
   private void help() {
-    String text = """
-        ls [-i | --info] - вывести на экран списка файлов текущей директории
-        cd [path] - перейти в указанную директорию
-        mkdir [name] - создать новую директорию
-        rm [filename] [-f | --force] – удалить указанный файл или директорию
-        mv [source] [destination] [-f | --force] – переименовать или перенести файл или директорию
-        cp [source] [destination] [-f | --force] – скопировать файл или директорию
-        finfo [filename] – получить подробную информацию о файле
-        find [filename] [-r | --recursive] - найти файл или директорию с указанным именем
-        help – вывести в консоль всех поддерживаемых команд
-        exit – завершить работу
-        """;
-    System.out.print(text);
+    for (String description : commands.values()) {
+      System.out.printf(" %s%n", description);
+    }
   }
 
-  // TODO: возможно, что стоит переделать на FileUtils
+  // FIXME: отображает только файлы
   private void list(List<String> args) {
     try {
-      File current = new File(this.current);
       boolean infoFlag = args.contains("-i") || args.contains("--info");
-      File[] files = current.listFiles();
-      if (files == null) {
-        throw new Exception("Ошибка получения списка файлов текущей директории");
-      }
+      Collection<File> files = FileUtils.listFiles(new File(this.current), null, false);
       for (File file : files
       ) {
         boolean isDirectory = file.isDirectory();
@@ -100,13 +86,17 @@ public class FileManager {
         }
       }
     } catch (Exception e) {
-      throw new RuntimeException(
-          "При отображении файлов каталога произошла ошибка: " + e.getMessage());
+      throw new RuntimeException(e.getMessage());
     }
   }
 
   private void changeDirectory(List<String> args) {
     try {
+      if (args.isEmpty()) {
+        System.out.printf(" %s%s%n", "Использование: ", commands.get("cd"));
+        return;
+      }
+
       String path = args.get(0);
       if ("/".equals(path)) {
         this.current = this.root;
@@ -123,12 +113,17 @@ public class FileManager {
       }
     } catch (Exception e) {
       throw new RuntimeException(
-          "При переходе в директорию произошла ошибка: " + e.getMessage());
+          e.getMessage());
     }
   }
 
   private void makeDirectory(List<String> args) throws Exception {
     try {
+      if (args.isEmpty()) {
+        System.out.printf(" %s%s%n", "Использование: ", commands.get("mkdir"));
+        return;
+      }
+
       String path = args.get(0);
       File file = new File((isAbsolutePath(path)) ? path : this.current + File.separator + path);
       if (file.exists()) {
@@ -138,17 +133,22 @@ public class FileManager {
         throw new Exception("Не удалось создать папку");
       }
     } catch (Exception e) {
-      throw new RuntimeException("При создании папки произошла ошибка: " + e.getMessage());
+      throw new RuntimeException(e.getMessage());
     }
   }
 
   private void remove(List<String> args) throws Exception {
     try {
+      if (args.isEmpty()) {
+        System.out.printf(" %s%s%n", "Использование: ", commands.get("rm"));
+        return;
+      }
+
       String path = args.get(0);
       boolean forceFlag = args.contains("-f") || args.contains("--force");
       File file = new File((isAbsolutePath(path)) ? path : this.current + File.separator + path);
       if (!file.exists()) {
-        throw new Exception("Указанные папка или файл не существуют");
+        throw new Exception("не найдены папка или файл для удаления");
       }
       if (forceFlag) {
         FileUtils.forceDelete(file);
@@ -158,8 +158,7 @@ public class FileManager {
         throw new Exception("Не удалось удалить папку или файл");
       }
     } catch (Exception e) {
-      throw new RuntimeException(
-          "При удалении папки или файла произошла ошибка: " + e.getMessage());
+      throw new RuntimeException(e.getMessage());
     }
   }
 
@@ -199,6 +198,11 @@ public class FileManager {
 
   private void info(List<String> args) throws Exception {
     try {
+      if (args.isEmpty()) {
+        System.out.printf(" %s%s%n", "Использование: ", commands.get("finfo"));
+        return;
+      }
+
       String path = args.get(0);
       File file = new File((isAbsolutePath(path)) ? path : this.current + File.separator + path);
       if (!file.exists()) {
@@ -212,13 +216,17 @@ public class FileManager {
               FileUtils.sizeOfDirectory(file))
               : FileUtils.byteCountToDisplaySize(file.length())));
     } catch (Exception e) {
-      throw new RuntimeException(
-          "При получении информации о папке или файле произошла ошибка: " + e.getMessage());
+      throw new RuntimeException(e.getMessage());
     }
   }
 
   private void find(List<String> args) throws Exception {
     try {
+      if (args.isEmpty()) {
+        System.out.printf(" %s%s%n", "Использование: ", commands.get("find"));
+        return;
+      }
+
       String name = args.get(0);
       boolean recursiveFlag = args.contains("-r") || args.contains("--recursive");
       Collection<File> files = FileUtils.listFiles(new File(this.current), null, recursiveFlag);
@@ -230,19 +238,19 @@ public class FileManager {
         }
       }
     } catch (Exception e) {
-      throw new RuntimeException("При поиске файла произошла ошибка: " + e.getMessage());
+      throw new RuntimeException(e.getMessage());
     }
 
-    System.out.println("Файл не найден");
+    System.out.printf(" %s%n", "Файл не найден");
   }
 
   private void blank() {
-    System.out.println(
+    System.out.printf(" %s%n",
         "Невозможно выполнить пустую команду, введите help для получения списка доступных команд");
   }
 
   private void exit() {
-    System.out.println("Завершение работы...");
+    System.out.printf(" %s%n","Завершение работы...");
   }
 
   private String convertTime(long time) {
