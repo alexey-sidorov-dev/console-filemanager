@@ -9,10 +9,11 @@ public enum Commands {
   CHANGE("cd", "cd [path] - перейти в указанную директорию"),
   MAKE("mkdir", "mkdir [name] - создать новую директорию"),
   REMOVE("rm", "rm [filename] [-f | --force] – удалить указанный файл или директорию"),
-  MOVE("mv", "mv [source] [destination] [-f | --force] – переименовать или перенести файл или директорию"),
+  MOVE("mv",
+      "mv [source] [destination] – переименовать или перенести файл или директорию"),
   COPY("cp", "cp [source] [destination] [-f | --force] – скопировать файл или директорию"),
   INFO("finfo", "finfo [filename] – получить подробную информацию о файле"),
-  FIND("find","find [filename] [-r | --recursive] - найти файл или директорию с указанным именем"),
+  FIND("find", "find [filename] [-r | --recursive] - найти файл или директорию с указанным именем"),
   EXIT("exit", "exit – завершить работу"),
   HELP("help", "help – вывести в консоль список всех поддерживаемых команд");
 

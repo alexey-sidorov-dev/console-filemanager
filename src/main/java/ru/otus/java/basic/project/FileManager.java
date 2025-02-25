@@ -31,7 +31,7 @@ public class FileManager {
     return current;
   }
 
-  // TODO: добавить -f для mv и cp
+  // TODO: добавить -f для mv
   public void process(String input) {
     try {
       List<String> tokens = new ArrayList<>(Arrays.asList(input.trim().split("\\s+")));
@@ -167,7 +167,6 @@ public class FileManager {
     }
   }
 
-  // FIXME: сообщение об ошибке и флаг
   private void move(List<String> args) {
     try {
       if (args.isEmpty() || args.size() < 2) {
@@ -175,19 +174,31 @@ public class FileManager {
         return;
       }
 
-      String sourcePath = args.get(0);
-      String destinationPath = args.get(1);
-      if (Objects.equals(sourcePath, destinationPath)) {
+      String source = args.get(0);
+      String destination = args.get(1);
+      if (Objects.equals(source, destination)) {
         throw new Exception("Папка или файл не могут быть перемещены сами в себя");
       }
 
-      boolean forceFlag = args.contains("-f") || args.contains("--force");
       File sourceFile = new File(
-          (isAbsolutePath(sourcePath)) ? sourcePath : this.current + File.separator + sourcePath);
-      File destinationFile = new File((isAbsolutePath(destinationPath)) ? destinationPath
-          : this.current + "\\" + destinationPath);
-      // FIXME:
-      FileUtils.moveToDirectory(sourceFile, destinationFile, destinationFile.exists());
+          (isAbsolutePath(source)) ? source : this.current + File.separator + source);
+      if (!sourceFile.exists()) {
+        throw new Exception("Не найдены исходные папка или файл для копирования");
+      }
+
+      File destinationFile = new File((isAbsolutePath(destination)) ? destination
+          : this.current + File.separator + destination);
+      if (!destination.contains(File.separator)) {
+        if (!sourceFile.renameTo(destinationFile)) {
+          throw new Exception("Не удалось переименовать папку или файл");
+        }
+      } else {
+        try {
+          FileUtils.moveToDirectory(sourceFile, destinationFile, destinationFile.exists());
+        } catch (Exception e) {
+          throw new RuntimeException("Не удалось переместить папку или файл");
+        }
+      }
     } catch (Exception e) {
       throw new RuntimeException(e.getMessage());
     }
@@ -206,21 +217,20 @@ public class FileManager {
         throw new Exception("Папка или файл не могут быть скопированы сами в себя");
       }
 
-      boolean forceFlag = args.contains("-f") || args.contains("--force");
       File sourceFile = new File(
           (isAbsolutePath(source)) ? source : this.current + File.separator + source);
-      File destinationDirectory = new File((isAbsolutePath(destination)) ? destination
-          : this.current + File.separator + destination);
-      File destinationFile = new File(destinationDirectory + File.separator + source);
-
       if (!sourceFile.exists()) {
         throw new Exception("Не найдены исходные папка или файл для копирования");
       }
 
+      File destinationDirectory = new File((isAbsolutePath(destination)) ? destination
+          : this.current + File.separator + destination);
       if (!destinationDirectory.exists() || !destinationDirectory.isDirectory()) {
         throw new Exception("Не найдена целевая папка для копирования");
       }
 
+      File destinationFile = new File(destinationDirectory + File.separator + source);
+      boolean forceFlag = args.contains("-f") || args.contains("--force");
       if (destinationFile.exists() && !forceFlag) {
         throw new Exception("Уже существуют такая папка или файл в целевой папке");
       }
