@@ -1,7 +1,6 @@
 package ru.otus.java.basic.project;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.Format;
@@ -12,6 +11,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import org.apache.commons.io.FileUtils;
 
 public class FileManager {
@@ -65,11 +65,14 @@ public class FileManager {
     }
   }
 
-  // FIXME: отображает только файлы
   private void list(List<String> args) {
     try {
       boolean infoFlag = args.contains("-i") || args.contains("--info");
-      Collection<File> files = FileUtils.listFiles(new File(this.current), null, false);
+      File current = new File(this.current);
+      File[] files = current.listFiles();
+      if (files == null) {
+        throw new Exception("Ошибка получения списка файлов текущей директории");
+      }
       for (File file : files
       ) {
         boolean isDirectory = file.isDirectory();
@@ -101,6 +104,9 @@ public class FileManager {
       if ("/".equals(path)) {
         this.current = this.root;
       } else if ("..".equals(path)) {
+        if (Objects.equals(this.current, this.root)) {
+          return;
+        }
         int index = this.current.lastIndexOf(File.separator);
         this.current = this.current.substring(0, index);
       } else {
@@ -112,12 +118,11 @@ public class FileManager {
         this.current = (isAbsolutePath(path)) ? path : this.current + File.separator + path;
       }
     } catch (Exception e) {
-      throw new RuntimeException(
-          e.getMessage());
+      throw new RuntimeException(e.getMessage());
     }
   }
 
-  private void makeDirectory(List<String> args) throws Exception {
+  private void makeDirectory(List<String> args) {
     try {
       if (args.isEmpty()) {
         System.out.printf(" %s%s%n", "Использование: ", commands.get("mkdir"));
@@ -137,7 +142,7 @@ public class FileManager {
     }
   }
 
-  private void remove(List<String> args) throws Exception {
+  private void remove(List<String> args) {
     try {
       if (args.isEmpty()) {
         System.out.printf(" %s%s%n", "Использование: ", commands.get("rm"));
@@ -148,7 +153,7 @@ public class FileManager {
       boolean forceFlag = args.contains("-f") || args.contains("--force");
       File file = new File((isAbsolutePath(path)) ? path : this.current + File.separator + path);
       if (!file.exists()) {
-        throw new Exception("не найдены папка или файл для удаления");
+        throw new Exception("Не найдены папка или файл для удаления");
       }
       if (forceFlag) {
         FileUtils.forceDelete(file);
@@ -163,40 +168,74 @@ public class FileManager {
   }
 
   // FIXME: сообщение об ошибке и флаг
-  private void move(List<String> args) throws IOException {
-    String sourcePath = args.get(0);
-    boolean forceFlag = args.contains("-f") || args.contains("--force");
-    String destinationPath = args.get(1);
-    File sourceFile = new File(
-        (isAbsolutePath(sourcePath)) ? sourcePath : this.current + File.separator + sourcePath);
-    File destinationFile = new File((isAbsolutePath(destinationPath)) ? destinationPath
-        : this.current + "\\" + destinationPath);
-    // FIXME:
-    FileUtils.moveToDirectory(sourceFile, destinationFile, destinationFile.exists());
+  private void move(List<String> args) {
+    try {
+      if (args.isEmpty() || args.size() < 2) {
+        System.out.printf(" %s%s%n", "Использование: ", commands.get("mv"));
+        return;
+      }
 
-  }
+      String sourcePath = args.get(0);
+      String destinationPath = args.get(1);
+      if (Objects.equals(sourcePath, destinationPath)) {
+        throw new Exception("Папка или файл не могут быть перемещены сами в себя");
+      }
 
-  // FIXME: сообщение об ошибке и флаг
-  private void copy(List<String> args) throws Exception {
-    String sourcePath = args.get(0);
-    String destinationPath = args.get(1);
-    boolean forceFlag = args.contains("-f") || args.contains("--force");
-    File sourceFile = new File(
-        (isAbsolutePath(sourcePath)) ? sourcePath : this.current + File.separator + sourcePath);
-    File destinationFile = new File((isAbsolutePath(destinationPath)) ? destinationPath
-        : this.current + File.separator + destinationPath);
-    if (!sourceFile.exists()) {
-      throw new Exception("Неверный путь для исходных файла или папки");
-    }
-
-    if (sourceFile.isDirectory()) {
-      FileUtils.copyDirectory(sourceFile, destinationFile);
-    } else {
-      FileUtils.copyFile(sourceFile, destinationFile);
+      boolean forceFlag = args.contains("-f") || args.contains("--force");
+      File sourceFile = new File(
+          (isAbsolutePath(sourcePath)) ? sourcePath : this.current + File.separator + sourcePath);
+      File destinationFile = new File((isAbsolutePath(destinationPath)) ? destinationPath
+          : this.current + "\\" + destinationPath);
+      // FIXME:
+      FileUtils.moveToDirectory(sourceFile, destinationFile, destinationFile.exists());
+    } catch (Exception e) {
+      throw new RuntimeException(e.getMessage());
     }
   }
 
-  private void info(List<String> args) throws Exception {
+  private void copy(List<String> args) {
+    try {
+      if (args.isEmpty() || args.size() < 2) {
+        System.out.printf(" %s%s%n", "Использование: ", commands.get("cp"));
+        return;
+      }
+
+      String source = args.get(0);
+      String destination = args.get(1);
+      if (Objects.equals(source, destination)) {
+        throw new Exception("Папка или файл не могут быть скопированы сами в себя");
+      }
+
+      boolean forceFlag = args.contains("-f") || args.contains("--force");
+      File sourceFile = new File(
+          (isAbsolutePath(source)) ? source : this.current + File.separator + source);
+      File destinationDirectory = new File((isAbsolutePath(destination)) ? destination
+          : this.current + File.separator + destination);
+      File destinationFile = new File(destinationDirectory + File.separator + source);
+
+      if (!sourceFile.exists()) {
+        throw new Exception("Не найдены исходные папка или файл для копирования");
+      }
+
+      if (!destinationDirectory.exists() || !destinationDirectory.isDirectory()) {
+        throw new Exception("Не найдена целевая папка для копирования");
+      }
+
+      if (destinationFile.exists() && !forceFlag) {
+        throw new Exception("Уже существуют такая папка или файл в целевой папке");
+      }
+
+      if (sourceFile.isDirectory()) {
+        FileUtils.copyDirectoryToDirectory(sourceFile, destinationDirectory);
+      } else {
+        FileUtils.copyFileToDirectory(sourceFile, destinationDirectory);
+      }
+    } catch (Exception e) {
+      throw new RuntimeException(e.getMessage());
+    }
+  }
+
+  private void info(List<String> args) {
     try {
       if (args.isEmpty()) {
         System.out.printf(" %s%s%n", "Использование: ", commands.get("finfo"));
@@ -220,7 +259,7 @@ public class FileManager {
     }
   }
 
-  private void find(List<String> args) throws Exception {
+  private void find(List<String> args) {
     try {
       if (args.isEmpty()) {
         System.out.printf(" %s%s%n", "Использование: ", commands.get("find"));
@@ -231,7 +270,7 @@ public class FileManager {
       boolean recursiveFlag = args.contains("-r") || args.contains("--recursive");
       Collection<File> files = FileUtils.listFiles(new File(this.current), null, recursiveFlag);
       for (File file : files) {
-        if (name.equals(file.getName())) {
+        if (Objects.equals(name, file.getName())) {
           System.out.printf(" %-25s%s%20s%n", file.getName(), convertTime(file.lastModified()),
               FileUtils.byteCountToDisplaySize(file.length()));
           return;
@@ -250,7 +289,7 @@ public class FileManager {
   }
 
   private void exit() {
-    System.out.printf(" %s%n","Завершение работы...");
+    System.out.printf(" %s%n", "Завершение работы...");
   }
 
   private String convertTime(long time) {
